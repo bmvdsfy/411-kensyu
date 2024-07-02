@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<!--htmlを宣言するための準備-->
+<html lang="en">
+<!--言語を英語に設定-->
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!--画面の幅をブラウザが表示している大きさの一倍に合わせる-->
+        <title>tetrisu411</title>
+        <style>
+            canvas{
+                display:block;
+                margin: 0 auto;
+                background-color:#eee
+            }
+        </style>
+        <!--ブロックレベル？で背景の色を指定。余白をゼロにして上下左右を均等に分ける-->
+    </head>
+    <body>
+        <canvas id ="gameCanvas" width="320" height="640"></canvas>
+        <!--ゲームで使用するキャンバスを定義-->
+        
+        <script>
+            //window.onloadは全体の処理を見込んだうえで実行してくれるよ
+            window.onload = function(){
+                const canvas = document.getElementById('gameCanvas');//gameCanvasの要素を取ってくるあれば
+                const context = canvas.getContext('2d');//２次元の描画属性を表すオブジェクトが作成される
+                const blockSize=32; //テトリスブロックのサイズ指定
+                const boardWidth=10; //テトリスブロックに対するフィールドの横倍率設定
+                const boardHeight=20; //縦の倍率
+                const board = createEmptyBoard();//関数createEmptyBoardの戻り値をいただく
+                let currentBlock = createBlock();
+                let nextBlock = createBlock();
+                let gameInterval = null;
+                let isPaused = false;
+                let score = 0;
+            }
+            //空のフィールドをつくる
+            function createEmptyBoard(){
+                const board = []; //ボードに値を入れとくよ
+                for (let y = 0; y < boardHeight; y++){
+                    board[y]=[];
+                    for(let x=0; x<boardWidth; x++){
+                        board[y][x]=0;
+                    }
+                }
+                return board; //window.onloadに値を入れる準備
+            }
+            function createBlock() {
+    const blocks = [
+        {
+            shape: [
+                [1, 1, 1, 1]
+            ],
+            color: 'cyan'
+        },
+        {
+            shape: [
+                [1, 0, 0],
+                [1, 1, 1]
+            ],
+            color: 'blue'
+        },
+        {
+            shape: [
+                [0, 0, 1],
+                [1, 1, 1]
+            ],
+            color: 'orange'
+        },
+        {
+            shape: [
+                [1, 1],
+                [1, 1]
+            ],
+            color: 'yellow'
+        },
+        {
+            shape: [
+                [0, 1, 1],
+                [1, 1, 0]
+            ],
+            color: 'green'
+        },
+        {
+            shape: [
+                [0, 1, 0],
+                [1, 1, 1]
+            ],
+            color: 'purple'
+        },
+        {
+            shape: [
+                [1, 1, 0],
+                [0, 1, 1]
+            ],
+            color: 'red'
+        }
+    ];
+
+    const block = blocks[Math.floor(Math.random() * blocks.length)];
+    return{
+
+        x:Math.floor(boardWidth / 2) - Math.ceil(block.shape[0].length / 2),
+        y: 0,
+        shape: block.shape,
+        color: block.color
+}
+}
+
+function drawBlock(block, offsertX = 0,offsetY = 0){
+          context.fillstyle = block.color;
+          for(let y = 0;y < block.shape.length; y++){
+            for(let x = 0;x <block.shape[y].length;x++){
+                if(block.shape[y][x]){
+                    context.fillRect((block.x + x) * blockSize + offsetX, (block.y + y) * blockSize + offsetY, blockSize, blockSize);
+                    context.strokeStyle = 'white';
+                    context.strokeRect((block.x + x) * blockSize + offsetX, (block.y + y) * blockSize + offsetY, blockSize, blockSize);
+                }
+            }
+        }                
+}
+function drawBoard() {
+for (let y = 0; y < boardHeight; y++) {
+for (let x = 0; x < boardWidth; x++) {
+    if (board[y][x]) {
+        context.fillStyle = board[y][x];
+        context.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+        context.strokestyle = 'white';
+        context.strokeRect(x * blockSize, y * blockSize, blockSize, blockSize);
+    }
+}
+}
+}
+ function drawScore() {
+                context.font = '20px Arial';
+                context.fillStyle = 'black';
+                context.fillText('Score: ' + score, 8, 20);
+            }
+
+function mergeBlock() {
+    for (let y = 0; y < currentBlock.shape.length; y++) {
+        for(let x = 0; x < currentBlock.shape[y].length; x++) {
+            if (currentBlock.shape[y][x]) {
+                board[currentBlock.y + y][currentBlock.x + x] = currentBlock.color;
+            }
+        }
+    }
+}
+function rotate(){
+    const prevShape = currentBlock.shape;
+    currentBlock.shape = currentBlock.shape[0].map((_, i) => currentBlock.shape.map(row => row[i])).reverse();
+    if (checkCollision(currentBlock, 0, 0)) {
+        currentBlock.shape = prevShape;
+    }
+}
+function move(dir) {
+    if (!checkCollision(currentBlock, dir, 0)) {
+        currentBlock.x += dir;
+    }
+}
+
+function checkCollision(block, dx, dy) {
+    for (let y = 0; y < block.shape.length; y++) {
+        for (let x = 0; x < block.shape[y].length; x++) {
+            if (block.shape[y][x] && (board[block.y + y + dy] && board[block.y + y + dy][block.x + x + dx]) !== 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+function clearLines(){
+    outer:for(let y = boardHeight - 1;y >= 0; y--){
+        for(x = 0;x < boardWidth; x++){
+            if(!board[y][x]){
+                continue outer;
+            }
+        }
+        board.split(y,1)
+        board.unshift(Array(boardWidth).fill(0))
+        score += 100;
+    }
+}
+
+function updateGame(){
+    if(!checkCollition(currentBlock,0,1)){
+        currentBlock.y++
+    }else{
+        mergeBlock();
+        clearLines();
+        currentBlock = nextBlock;
+        nextBlock =createBlock();
+        if(checkCllition(currentBlock, 0, 0)){
+            clearInterval(gameInterval);
+            context.font = '30px Arial';
+            context.fillStyle = 'red';
+            context.fillText('Game Over', canvas.width / 4, canvas.height / 2); 
+            return; 
+        }
+    }
+}
+document.onkeydown = function (e) {
+    if (isPaused) return;
+    switch (e.key) {
+        case 'ArrowUp':
+            rotate();
+            break;
+        case 'ArrowRight':
+            move(1);
+            break;
+        case 'ArrowLeft':
+            move(-1);
+            break;
+        case 'ArrowDown':
+            if(!checkCollision(currentBlock, 0, 1)) {
+                currentBlock.y++;
+                score += 10;
+            }
+            break;
+        case ' ':
+            while (!checkCollision(currentBlock, 0, 1)) {
+                currentBlock.y++;
+                score += 10;
+            }
+            break;
+        default:
+            break;
+    }
+};
+function drawGame() {
+if (!isPaused) {
+context.clearRect(0, 0, canvas.width, canvas.height);
+drawBoard();
+drawBlock(currentBlock);
+drawBlock(nextBlock, canvas.width - blocksize * 4, 0);
+    }
+requestAnimationFrame(drawGame);
+}
+function startGame(){
+ if (gameInterval) return;
+ gameInterval = setInterval(updateGame, 1000 / 2);
+}
+function pauseGame() {
+     clearInterval(gameInterval);
+     gameInterval = null;
+}
+function restartGame() {
+    board.lenth = 0;
+    object.assign(board, createEmptyBoard());
+    currentBlock = createBlock();
+    nextBlock = createBlock();
+    score = 0;
+    startGame();
+    
+}
+
+/*let bgm = document.getElementById("bgm");
+function toggleBGM() {
+    if (bgm.paused) {
+        bgm.play();
+    } else {
+        bgm.pause();
+    }
+}
+// キーボードの「M」キーでBGMのON/OFFを切り替える
+document.addEventListener("keydown", function(event) {
+    if (event.key === "m" || event.key === "M") {
+        toggleBGM();
+    }
+});*/
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        if (!gameInterval) {
+            startGame();
+        } else {
+            pauseGame();
+        }
+    } else if (event.key === 'r' || event.key === 'R') {
+        restartGame();
+    } else if (event.key === 'Escape') {
+        window.close();
+    }
+    });
+
+    drawGame();
+</script>
+        
+    </body>
+</html>
