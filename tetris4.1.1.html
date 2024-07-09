@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris-likeGame</title>
+    
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            padding:0;
+            background-color: #000;
+            background-repeat: no-repeat;
+        }
+
+    </style>
+    <!--background-image: url("bg_base.png");-->
+    <!-- background-color: #eee; -->
+</head>
+<body bgcolor = "white">
+    <audio src="bg1.mp3" id="music" loop></audio>
+    <table border="2" style="position:fixed; top:250px; left:calc(50% + 180px)">
+        <tr><th>キー</th><th>説明</th></tr>
+        <tr><td>Enter</td><td>ゲームスタート</td></tr>
+        <tr><td>R</td><td>ゲームリセット</td></tr>
+        <tr><td>K</td><td>BGMの再生・停止</td></tr>
+        <tr><td>Enter</td><td>ゲームの再生・停止</td></tr>
+        <tr><td>↑</td><td>ミノを回転</td></tr>
+        <tr><td>→←↓</td><td>矢印の方向に移動</td></tr>
+        <tr><td>space</td><td>ミノを一番下まで下げる</td></tr>
+        <tr><td>esc</td><td>ウィンドウを閉じる</td></tr>
+        <!--<tr><td>***</td><td>***</td></tr>-->
+    </table>
+
+    <canvas id="gameCanvas" width="320" height="640"></canvas>
+    <canvas id="nextBlockCanvas" width="160" height="160" style="position:fixed; top:70px; left: calc(50% + 180px);"></canvas><!--追加-->
+    <script>
+        window.onload = function () {
+            const canvas = document.getElementById('gameCanvas');
+            const context = canvas.getContext('2d');
+            const nextBlockCanvas = document.getElementById('nextBlockCanvas');//追加
+            const nextBlockContext = nextBlockCanvas.getContext('2d');//追加
+            const blockSize = 32;
+            const boardWidth = 10;
+            const boardHeight = 20;
+            const board = createEmptyBoard();
+            let currentBlock = createBlock();
+            let nextBlock = createBlock();
+            let gameInterval = null;
+            let isPaused = false;
+            let score = 0;
+            let mp = false;
+
+            document.addEventListener('keydown', (event) => {
+                if(!mp){
+                    if(event.key==='r' || event.key==='R' || event.key==='k' || event.key==='K' || event.key==='Enter'){
+                        music.play();
+                        mp = true;
+                    }
+                }
+                else{
+                    if(event.key==='k' || event.key==='K' || event.key==='Enter'){
+                        music.pause();
+                        mp=false;
+                    }
+                }
+                });
+                //音楽再生
+
+            function createEmptyBoard() {
+                const board = [];
+                for (let y = 0; y < boardHeight; y++) {
+                    board[y] = [];
+                    for (let x = 0; x < boardWidth; x++) {
+                        board[y][x] = 0;
+                    }
+                }
+                return board;
+            }
+
+            function createBlock() {
+                const blocks = [
+                    // I
+                    {
+                        shape: [
+                            [1, 1, 1, 1]
+                        ],
+                        color: 'cyan'
+                    },
+                    // J
+                    {
+                        shape: [
+                            [1, 0, 0],
+                            [1, 1, 1]
+                        ],
+                        color: 'blue'
+                    },
+                    // L
+                    {
+                        shape: [
+                            [0, 0, 1],
+                            [1, 1, 1]
+                        ],
+                        color: 'orange'
+                    },
+                    // O
+                    {
+                        shape: [
+                            [1, 1],
+                            [1, 1]
+                        ],
+                        color: 'yellow'
+                    },
+                    // S
+                    {
+                        shape: [
+                            [0, 1, 1],
+                            [1, 1, 0]
+                        ],
+                        color: 'green'
+                    },
+                    // T
+                    {
+                        shape: [
+                            [0, 1, 0],
+                            [1, 1, 1]
+                        ],
+                        color: 'purple'
+                    },
+                    // Z
+                    {
+                        shape: [
+                            [1, 1, 0],
+                            [0, 1, 1]
+                        ],
+                        color: 'red'
+                    }
+                ];
+
+                const block = blocks[Math.floor(Math.random() * blocks.length)];
+                //const block = blocks[0];
+                return {
+                    x: Math.floor(boardWidth / 2) - Math.ceil(block.shape[0].length / 2),
+                    y: 0,
+                    shape: block.shape,
+                    color: block.color
+                };
+            }
+
+            function drawBlock(context, block, offsetX, offsetY) {//offSetを変数にした
+                context.fillStyle = block.color;
+                for (let y = 0; y < block.shape.length; y++) {
+                    for (let x = 0; x < block.shape[y].length; x++) {
+                        if (block.shape[y][x]) {
+                            context.fillRect((block.x + x) * blockSize + offsetX, (block.y + y) * blockSize + offsetY, blockSize, blockSize);
+                            context.strokeStyle = 'white';
+                            context.strokeRect((block.x + x) * blockSize + offsetX, (block.y + y) * blockSize + offsetY, blockSize, blockSize);
+                        }
+                    }
+                }
+            }
+
+            function drawBoard() {
+                for (let y = 0; y < boardHeight; y++) {
+                    for (let x = 0; x < boardWidth; x++) {
+                        if (board[y][x]) {
+                            context.fillStyle = board[y][x];
+                            context.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+                            context.strokeStyle = 'white';
+                            context.strokeRect(x * blockSize, y * blockSize, blockSize, blockSize);
+                        }
+                    }
+                }
+            }
+
+            function drawScore() {
+                context.font = '20px Arial';
+                context.fillStyle = 'gold';
+                context.fillText('Score: ' + score, 8, 20);
+            }
+
+            function mergeBlock() {
+                for (let y = 0; y < currentBlock.shape.length; y++) {
+                    for (let x = 0; x < currentBlock.shape[y].length; x++) {
+                        if (currentBlock.shape[y][x]) {
+                            board[currentBlock.y + y][currentBlock.x + x] = currentBlock.color;
+                        }
+                    }
+                }
+            }
+
+            function rotate() {
+                const prevShape = currentBlock.shape;
+                currentBlock.shape = currentBlock.shape[0].map((_, i) => currentBlock.shape.map(row => row[i])).reverse();
+                if (checkCollision(currentBlock, 0, 0)) {
+                    currentBlock.shape = prevShape;
+                }
+            }
+
+            function move(dir) {
+                if (!checkCollision(currentBlock, dir, 0)) {
+                    currentBlock.x += dir;
+                }
+            }
+
+            function checkCollision(block, dx, dy) {
+                for (let y = 0; y < block.shape.length; y++) {
+                    for (let x = 0; x < block.shape[y].length; x++) {
+                        if (block.shape[y][x] && (
+                            board[block.y + y + dy] && board[block.y + y + dy][block.x + x + dx]) !== 0) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            function clearLines() {
+    let linesCleared = 0;
+    for (let y = boardHeight - 1; y >= 0; y--) {
+        let rowFilled = true;
+        for (let x = 0; x < boardWidth; x++) {
+            if (!board[y][x]) {
+                rowFilled = false;
+                break; 
+            }
+        }
+
+        if (rowFilled) {
+            board.splice(y, 1);
+            board.unshift(Array(boardWidth).fill(0));
+            linesCleared++;
+            y = boardHeight; 
+        }
+    }
+    score += linesCleared * 100;
+}
+            function updateGame() {
+                if (!checkCollision(currentBlock, 0, 1)) {
+                    currentBlock.y++;
+                } else {
+                    mergeBlock();
+                    clearLines();
+                    currentBlock = nextBlock;
+                    nextBlock = createBlock();
+                    if (checkCollision(currentBlock, 0, 0)) {
+                        clearInterval(gameInterval);
+                        context.font = '30px Arial';
+                        context.fillStyle = 'red';
+                        context.fillText('Game Over', canvas.width / 4, canvas.height / 2);
+                        
+                        return;
+                    }
+                }
+            }
+
+            document.onkeydown = function(e) {
+                if (isPaused) return;
+                switch (e.key) {
+                    case 'ArrowUp':
+                        rotate();
+                        break;
+                    case 'ArrowRight':
+                        move(1);
+                        break;
+                    case 'ArrowLeft':
+                        move(-1);
+                        break;
+                    case 'ArrowDown':
+                        if (!checkCollision(currentBlock, 0, 1)) {
+                            currentBlock.y++;
+                            score += 0;
+                        }
+                        break;
+                    case ' ':
+                        while (!checkCollision(currentBlock, 0, 1)) {
+                            currentBlock.y++;
+                            score += 0;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            };
+
+            function drawGame() {
+                context.clearRect(0,0,canvas.width, canvas.height);//追加
+                const offsetX2=- nextBlockCanvas.width / 2;//追加
+                const offsetY2=nextBlockCanvas.height / 2;//追加
+                if (!isPaused) {
+                    context.clearRect(0, 0, canvas.width, canvas.height);//古いブロックを消去してる
+                    drawBoard();
+                    drawBlock(context, currentBlock, 0, 0);
+                    
+                    nextBlockContext.clearRect(0,0,nextBlockCanvas.width, nextBlockCanvas.height);//古いブロックを消去してる
+                    drawBlock(nextBlockContext, nextBlock, offsetX2, offsetY2);//offSet要素を追加
+                    //drawBlock(nextBlock, canvas.width - blockSize * 4, 0);から直前2行に変更
+                    drawScore();
+                }
+                requestAnimationFrame(drawGame);
+            }
+
+            function startGame() {
+                if (gameInterval) return;
+                gameInterval = setInterval(updateGame, 1000 / 2);
+            }
+
+            function restartGame() {
+                board.length = 0;
+                Object.assign(board, createEmptyBoard());
+                currentBlock = createBlock();
+                nextBlock = createBlock();
+                score = 0;
+                startGame();
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    if (!gameInterval) {
+                        startGame();
+                    }
+                } else if (event.key === 'r' || event.key === 'R') {
+                    restartGame();
+                } else if (event.key === 'Escape') {
+                    window.close();
+                }             
+            });
+
+            drawGame();
+        }
+        //aa
+    </script>
+</body>
+</html>
